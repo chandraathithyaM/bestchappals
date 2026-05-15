@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServerClient } from "@/lib/supabase";
+import { createClerkClient } from "@clerk/nextjs/server";
 
 // GET: List/search users
 export async function GET(req: NextRequest) {
@@ -16,6 +17,40 @@ export async function GET(req: NextRequest) {
   const to = from + limit - 1;
 
   const supabase = createServerClient();
+
+  // ─── CLERK SYNC ────────────────────────────────────────────────────────────
+  // If this is the first page and no search, sync users from Clerk to ensure 
+  // the DB is populated (fallback for missing/failed webhooks).
+  if (page === 1 && !search) {
+    try {
+      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+      // Use getUserList to fetch users. Note: for very large user bases, 
+      // you might want to paginate this or use a more targeted sync.
+      const { data: clerkUsers } = await clerk.users.getUserList();
+      
+      if (clerkUsers && clerkUsers.length > 0) {
+        const usersToUpsert = clerkUsers.map(u => ({
+          id: u.id,
+          email: u.emailAddresses[0]?.emailAddress || null,
+          first_name: u.firstName || null,
+          last_name: u.lastName || null,
+          phone: u.phoneNumbers[0]?.phoneNumber || null,
+          image_url: u.imageUrl || null,
+          updated_at: new Date().toISOString()
+        }));
+
+        // Upsert only profile fields, preserving total_orders and total_spent
+        await supabase.from("users").upsert(usersToUpsert, { 
+          onConflict: "id",
+          ignoreDuplicates: false 
+        });
+      }
+    } catch (err) {
+      console.error("[admin-users-sync] Clerk sync failed:", err);
+      // Continue anyway to show whatever is in Supabase
+    }
+  }
+
   let query = supabase.from("users").select("*", { count: "exact" });
 
   if (search) {
