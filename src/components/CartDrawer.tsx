@@ -170,7 +170,7 @@ export default function CartDrawer() {
                             fontSize: "0.85rem",
                           }}
                         >
-                          ₹{item.product.price}
+                          ₹{(item.product.offer_price || item.product.price).toLocaleString("en-IN")}
                         </p>
                         <div
                           style={{

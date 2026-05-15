@@ -120,7 +120,7 @@ export default function CheckoutPage() {
             name: i.product.name,
             category: i.product.category,
             image: i.product.image,
-            price: i.product.price,
+            price: i.product.offer_price || i.product.price,
             size: i.size,
             quantity: i.quantity,
           })),
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
                       <p style={{ fontSize: "0.7rem", color: "#9ca3af", marginTop: 2 }}>Size {item.size} · Qty {item.quantity}</p>
                     </div>
                     <p style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: "0.9rem", whiteSpace: "nowrap" }}>
-                      ₹{(item.product.price * item.quantity).toLocaleString("en-IN")}
+                      ₹{((item.product.offer_price || item.product.price) * item.quantity).toLocaleString("en-IN")}
                     </p>
                   </div>
                 ))}

@@ -136,12 +136,12 @@ export default function NewProductPage() {
               <div className="admin-card-body">
                 <div className="admin-grid-2">
                   <div>
-                    <label className="admin-label">Price (₹) *</label>
-                    <input className="admin-input" name="price" type="number" value={form.price} onChange={handleChange} required min={1} placeholder="549" />
+                    <label className="admin-label">Original Price (MRP) *</label>
+                    <input className="admin-input" name="price" type="number" value={form.price} onChange={handleChange} required min={1} placeholder="e.g. 1000" />
                   </div>
                   <div>
-                    <label className="admin-label">Offer Price (₹)</label>
-                    <input className="admin-input" name="offer_price" type="number" value={form.offer_price} onChange={handleChange} placeholder="Original price before discount" />
+                    <label className="admin-label">Offer Price (Selling Price)</label>
+                    <input className="admin-input" name="offer_price" type="number" value={form.offer_price} onChange={handleChange} placeholder="e.g. 800" />
                   </div>
                 </div>
               </div>

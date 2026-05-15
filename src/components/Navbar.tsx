@@ -143,8 +143,8 @@ export default function Navbar() {
                 {(user?.publicMetadata as any)?.role === "admin" && (
                   <Link
                     href="/admin"
-                    className="hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-[10px] font-bold uppercase tracking-wider"
-                    style={{ fontFamily: "Montserrat" }}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border border-blue-100"
+                    style={{ fontFamily: "Montserrat", pointerEvents: "auto", zIndex: 60 }}
                   >
                     Admin
                   </Link>
@@ -317,14 +317,26 @@ export default function Navbar() {
 
             <div className="mt-auto pt-8 flex flex-col gap-3">
               {isSignedIn ? (
-                <Link
-                  href="/orders"
-                  onClick={() => setMobileOpen(false)}
-                  className="btn btn-white"
-                  style={{ fontSize: "0.75rem", justifyContent: "center" }}
-                >
-                  <PackageSearch size={15} /> My Orders
-                </Link>
+                <>
+                  {(user?.publicMetadata as any)?.role === "admin" && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setMobileOpen(false)}
+                      className="btn btn-white"
+                      style={{ fontSize: "0.75rem", justifyContent: "center", border: "1px solid #2563EB", color: "#2563EB" }}
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  <Link
+                    href="/orders"
+                    onClick={() => setMobileOpen(false)}
+                    className="btn btn-white"
+                    style={{ fontSize: "0.75rem", justifyContent: "center" }}
+                  >
+                    <PackageSearch size={15} /> My Orders
+                  </Link>
+                </>
               ) : (
                 <SignInButton mode="modal">
                   <button

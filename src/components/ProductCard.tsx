@@ -40,7 +40,9 @@ export default function ProductCard({ product, index = 0 }: Props) {
   const productImage = (product.images?.[0] || product.image) ? (product.images?.[0] || product.image) : "/placeholder.jpg";
   const isNew = product.is_new || product.isNew;
   const isTrending = product.trending || product.isTrending;
-  const originalPrice = product.offer_price || product.originalPrice;
+  const sellingPrice = product.offer_price || product.price;
+  const displayOriginalPrice = product.offer_price ? product.price : product.originalPrice;
+  const hasDiscount = displayOriginalPrice && displayOriginalPrice > sellingPrice;
 
   return (
     <motion.div
@@ -89,9 +91,9 @@ export default function ProductCard({ product, index = 0 }: Props) {
         >
           {isNew && <span className="badge badge-new">New</span>}
           {isTrending && <span className="badge badge-trending">Trending</span>}
-          {originalPrice && originalPrice > product.price && (
+          {hasDiscount && displayOriginalPrice && (
             <span className="badge badge-sale">
-              -{Math.round(((originalPrice - product.price) / originalPrice) * 100)}%
+              -{Math.round(((displayOriginalPrice - sellingPrice) / displayOriginalPrice) * 100)}%
             </span>
           )}
           {product.out_of_stock && (
@@ -166,10 +168,10 @@ export default function ProductCard({ product, index = 0 }: Props) {
         <p className="product-card__category">{product.category}</p>
         <h3 className="product-card__name">{product.name}</h3>
         <div className="product-card__price">
-          <span className="price-current">₹{product.price.toLocaleString("en-IN")}</span>
-          {originalPrice && originalPrice > product.price && (
+          <span className="price-current">₹{sellingPrice.toLocaleString("en-IN")}</span>
+          {hasDiscount && displayOriginalPrice && (
             <span className="price-original">
-              ₹{originalPrice.toLocaleString("en-IN")}
+              ₹{displayOriginalPrice.toLocaleString("en-IN")}
             </span>
           )}
         </div>

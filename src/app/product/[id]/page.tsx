@@ -130,11 +130,13 @@ export default function ProductPage() {
 
                 {/* Price */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                  <span style={{ fontFamily: "Montserrat", fontWeight: 800, fontSize: "1.8rem", color: "#111" }}>₹{product.price.toLocaleString("en-IN")}</span>
-                  {(product.offer_price || product.originalPrice) && (product.offer_price || product.originalPrice)! > product.price && (
+                  <span style={{ fontFamily: "Montserrat", fontWeight: 800, fontSize: "1.8rem", color: "#111" }}>₹{(product.offer_price || product.price).toLocaleString("en-IN")}</span>
+                  {(product.offer_price || product.originalPrice) && (product.offer_price ? product.price : product.originalPrice)! > (product.offer_price || product.price) && (
                     <>
-                      <span style={{ fontFamily: "Poppins", fontSize: "1rem", color: "#9ca3af", textDecoration: "line-through" }}>₹{(product.offer_price || product.originalPrice)!.toLocaleString("en-IN")}</span>
-                      <span className="badge badge-sale">{Math.round((((product.offer_price || product.originalPrice)! - product.price) / (product.offer_price || product.originalPrice)!) * 100)}% OFF</span>
+                      <span style={{ fontFamily: "Poppins", fontSize: "1rem", color: "#9ca3af", textDecoration: "line-through" }}>₹{(product.offer_price ? product.price : product.originalPrice)!.toLocaleString("en-IN")}</span>
+                      <span className="badge badge-sale">
+                        {Math.round((((product.offer_price ? product.price : product.originalPrice)! - (product.offer_price || product.price)) / (product.offer_price ? product.price : product.originalPrice)!) * 100)}% OFF
+                      </span>
                     </>
                   )}
                 </div>
@@ -253,7 +255,7 @@ export default function ProductPage() {
       {/* Mobile sticky CTA */}
       <div className="mobile-sticky-cta" style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "12px 16px", background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderTop: "1px solid #e5e7eb", zIndex: 40, display: "none", gap: 8 }}>
         <button onClick={handleAddToCart} className="btn btn-dark" style={{ flex: 1, fontSize: "0.82rem" }}>
-          {added ? "Added ✓" : "Add to Cart — ₹" + product.price.toLocaleString("en-IN")}
+          {added ? "Added ✓" : "Add to Cart — ₹" + (product.offer_price || product.price).toLocaleString("en-IN")}
         </button>
         {isSignedIn ? (
           <button onClick={handleBuyNow}

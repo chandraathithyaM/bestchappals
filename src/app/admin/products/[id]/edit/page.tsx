@@ -147,11 +147,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               <div className="admin-card-body">
                 <div className="admin-grid-2">
                   <div>
-                    <label className="admin-label">Price (₹) *</label>
+                    <label className="admin-label">Original Price (MRP) *</label>
                     <input className="admin-input" name="price" type="number" value={form.price} onChange={handleChange} required min={1} />
                   </div>
                   <div>
-                    <label className="admin-label">Offer Price (₹)</label>
+                    <label className="admin-label">Offer Price (Selling Price)</label>
                     <input className="admin-input" name="offer_price" type="number" value={form.offer_price} onChange={handleChange} />
                   </div>
                 </div>
