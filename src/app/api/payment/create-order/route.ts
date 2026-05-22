@@ -18,8 +18,7 @@ interface CreateOrderBody {
   couponCode?: string;
 }
 
-const SHIPPING_THRESHOLD = 999;
-const SHIPPING_COST = 99;
+// Free shipping on all orders
 const MIN_ORDER_AMOUNT = 100;
 
 export async function POST(req: NextRequest) {
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
     });
 
     const subtotal = products.reduce((sum, p) => sum + p.subtotal, 0);
-    const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+    const shipping = 0; // Free shipping on all orders
     const discount = 0;
     const total = subtotal + shipping - discount;
 

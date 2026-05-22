@@ -7,7 +7,8 @@ import Modal from "@/components/admin/Modal";
 import { useAdminToast } from "@/components/admin/AdminToast";
 import LoadingSkeleton from "@/components/admin/LoadingSkeleton";
 
-const ORDER_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+const ORDER_STATUSES = ["processing", "delivered"];
+const DEFAULT_STATUSES = ["processing", "delivered"]; // Only show processed & completed orders
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -25,7 +26,12 @@ export default function OrdersPage() {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: "15" });
     if (search) params.set("search", search);
-    if (statusFilter) params.set("status", statusFilter);
+    if (statusFilter) {
+      params.set("status", statusFilter);
+    } else {
+      // Default: only show processing and delivered orders
+      params.set("statuses", DEFAULT_STATUSES.join(","));
+    }
     if (paymentFilter) params.set("paymentStatus", paymentFilter);
 
     const res = await fetch(`/api/admin/orders?${params}`);
@@ -87,7 +93,7 @@ export default function OrdersPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.03em" }}>Orders</h1>
-          <p style={{ fontSize: "0.85rem", color: "var(--admin-text-secondary)", marginTop: 4 }}>{total} orders total</p>
+          <p style={{ fontSize: "0.85rem", color: "var(--admin-text-secondary)", marginTop: 4 }}>{total} processed & completed orders</p>
         </div>
         <button onClick={exportCSV} className="admin-btn admin-btn-ghost">
           <Download size={16} /> Export CSV

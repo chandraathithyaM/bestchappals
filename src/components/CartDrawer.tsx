@@ -255,6 +255,23 @@ export default function CartDrawer() {
                   padding: "1.25rem 1.5rem",
                 }}
               >
+                {/* Free Shipping Banner */}
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #ecfdf5, #d1fae5)",
+                    borderRadius: 10,
+                    padding: "0.6rem 0.85rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 14,
+                  }}
+                >
+                  <span style={{ fontSize: "1rem" }}>🚚</span>
+                  <p style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: "0.72rem", color: "#065f46" }}>
+                    Free Shipping on All Orders!
+                  </p>
+                </div>
                 <div
                   style={{
                     display: "flex",

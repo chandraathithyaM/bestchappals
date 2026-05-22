@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(url.searchParams.get("limit") || "20");
   const search = url.searchParams.get("search") || "";
   const status = url.searchParams.get("status") || "";
+  const statuses = url.searchParams.get("statuses") || ""; // comma-separated statuses
   const paymentStatus = url.searchParams.get("paymentStatus") || "";
 
   const from = (page - 1) * limit;
@@ -20,7 +21,12 @@ export async function GET(req: NextRequest) {
   const supabase = createServerClient();
   let query = supabase.from("orders").select("*", { count: "exact" });
 
-  if (status) query = query.eq("order_status", status);
+  if (status) {
+    query = query.eq("order_status", status);
+  } else if (statuses) {
+    // Filter by multiple statuses (e.g., "processing,delivered")
+    query = query.in("order_status", statuses.split(",").map(s => s.trim()));
+  }
   if (paymentStatus) query = query.eq("payment_status", paymentStatus);
   if (search) {
     query = query.or(`payment_id.ilike.%${search}%,razorpay_order_id.ilike.%${search}%`);

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Package, ShoppingCart, Users, DollarSign,
-  AlertTriangle, TrendingUp, ArrowUpRight
+  AlertTriangle, TrendingUp, ArrowUpRight, Bell, X, CheckCircle
 } from "lucide-react";
 import StatCard from "@/components/admin/StatCard";
 import StatusBadge from "@/components/admin/StatusBadge";
@@ -25,10 +25,23 @@ interface DashboardData {
   monthlySales: { month: string; revenue: number; count: number }[];
 }
 
+interface OrderNotification {
+  id: string;
+  customerName: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<OrderNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const lastCheckRef = useRef<string>(new Date(Date.now() - 5 * 60 * 1000).toISOString());
+  const notifRef = useRef<HTMLDivElement>(null);
 
+  // Fetch dashboard data
   useEffect(() => {
     fetch("/api/admin/dashboard")
       .then(r => r.json())
@@ -36,6 +49,52 @@ export default function AdminDashboard() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Poll for new order notifications every 30 seconds
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/notifications?since=${encodeURIComponent(lastCheckRef.current)}`);
+      const data = await res.json();
+      if (data.notifications && data.notifications.length > 0) {
+        setNotifications(prev => {
+          const existingIds = new Set(prev.map((n: OrderNotification) => n.id));
+          const newOnes = data.notifications.filter((n: OrderNotification) => !existingIds.has(n.id));
+          return [...newOnes, ...prev].slice(0, 50); // Keep max 50
+        });
+      }
+      if (data.serverTime) {
+        lastCheckRef.current = data.serverTime;
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications(); // Initial fetch
+    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Close notification panel on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const dismissNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    setShowNotifications(false);
+  };
 
   if (loading) {
     return (
@@ -76,6 +135,20 @@ export default function AdminDashboard() {
     return "₹" + num.toLocaleString("en-IN", { maximumFractionDigits: 0 });
   };
 
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -85,7 +158,185 @@ export default function AdminDashboard() {
             Welcome back! Here&apos;s your store overview.
           </p>
         </div>
+        {/* Notification Bell */}
+        <div style={{ position: "relative" }} ref={notifRef}>
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            style={{
+              position: "relative",
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              border: "1px solid var(--admin-border)",
+              background: showNotifications ? "var(--admin-primary)" : "var(--admin-surface)",
+              color: showNotifications ? "#fff" : "var(--admin-text)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.2s ease",
+              boxShadow: notifications.length > 0 ? "0 0 0 3px rgba(99,102,241,0.15)" : "none",
+            }}
+          >
+            <Bell size={20} />
+            {notifications.length > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: "#ef4444",
+                  color: "#fff",
+                  fontSize: "0.65rem",
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "2px solid var(--admin-bg)",
+                  animation: "notifPulse 2s ease-in-out infinite",
+                }}
+              >
+                {notifications.length > 9 ? "9+" : notifications.length}
+              </span>
+            )}
+          </button>
+
+          {/* Notification Dropdown */}
+          {showNotifications && (
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: 52,
+                width: 380,
+                maxHeight: 480,
+                overflowY: "auto",
+                background: "var(--admin-surface)",
+                border: "1px solid var(--admin-border)",
+                borderRadius: 16,
+                boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+                zIndex: 1000,
+                animation: "notifSlideIn 0.2s ease-out",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid var(--admin-border)" }}>
+                <div>
+                  <h3 style={{ fontWeight: 700, fontSize: "0.95rem" }}>New Orders</h3>
+                  <p style={{ fontSize: "0.75rem", color: "var(--admin-text-muted)", marginTop: 2 }}>
+                    {notifications.length} new order{notifications.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                {notifications.length > 0 && (
+                  <button
+                    onClick={clearAllNotifications}
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "var(--admin-primary)",
+                      background: "var(--admin-primary-light)",
+                      border: "none",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              {notifications.length === 0 ? (
+                <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--admin-text-muted)" }}>
+                  <CheckCircle size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+                  <p style={{ fontSize: "0.85rem" }}>No new orders</p>
+                  <p style={{ fontSize: "0.75rem", marginTop: 4 }}>New orders will appear here automatically</p>
+                </div>
+              ) : (
+                <div style={{ padding: "8px" }}>
+                  {notifications.map((notif, idx) => (
+                    <div
+                      key={notif.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        padding: "12px",
+                        borderRadius: 12,
+                        background: idx === 0 ? "rgba(99,102,241,0.06)" : "transparent",
+                        transition: "background 0.15s",
+                        cursor: "pointer",
+                        marginBottom: 4,
+                        animation: idx < 3 ? `notifFadeIn 0.3s ease-out ${idx * 0.1}s both` : "none",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(99,102,241,0.08)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = idx === 0 ? "rgba(99,102,241,0.06)" : "transparent")}
+                    >
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <ShoppingCart size={16} color="#fff" />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 600, fontSize: "0.83rem", marginBottom: 2 }}>
+                          🎉 New Order from {notif.customerName}
+                        </p>
+                        <p style={{ fontSize: "0.78rem", color: "var(--admin-text-secondary)" }}>
+                          Amount: <strong>₹{notif.amount.toLocaleString("en-IN")}</strong>
+                        </p>
+                        <p style={{ fontSize: "0.7rem", color: "var(--admin-text-muted)", marginTop: 3 }}>
+                          {getTimeAgo(notif.createdAt)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); dismissNotification(notif.id); }}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--admin-text-muted)",
+                          cursor: "pointer",
+                          padding: 4,
+                          borderRadius: 6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Notification animations */}
+      <style>{`
+        @keyframes notifPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.15); }
+        }
+        @keyframes notifSlideIn {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes notifFadeIn {
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
 
       {/* Stats Grid */}
       <div className="admin-grid-4" style={{ marginBottom: 24 }}>

@@ -15,8 +15,8 @@ import type { ShippingAddress } from "@/lib/supabase";
 import { useAuth } from "@clerk/nextjs";
 
 
-const SHIPPING_THRESHOLD = 999;
-const SHIPPING_COST = 99;
+// Free shipping on all orders
+const SHIPPING_COST = 0;
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
   const { addToast } = useToast();
   const { userId } = useAuth();
   const cartTotal = total();
-  const shipping = cartTotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shipping = 0; // Free shipping on all orders
   const grandTotal = cartTotal + shipping;
 
 
@@ -344,19 +344,23 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Free Shipping Banner */}
+              <div style={{ background: "linear-gradient(135deg, #ecfdf5, #d1fae5)", borderRadius: 12, padding: "0.75rem 1rem", display: "flex", alignItems: "center", gap: 8, marginBottom: "0.5rem" }}>
+                <span style={{ fontSize: "1.2rem" }}>🚚</span>
+                <div>
+                  <p style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: "0.8rem", color: "#065f46" }}>Free Shipping!</p>
+                  <p style={{ fontSize: "0.7rem", color: "#047857", fontFamily: "Poppins" }}>Enjoy free delivery on all orders</p>
+                </div>
+              </div>
+
               <div style={{ borderTop: "1px dashed #e5e7eb", paddingTop: "1rem", display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontFamily: "Poppins", color: "#6b7280" }}>
                   <span>Subtotal</span><span>₹{cartTotal.toLocaleString("en-IN")}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontFamily: "Poppins", color: shipping === 0 ? "#22c55e" : "#6b7280" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontFamily: "Poppins", color: "#22c55e" }}>
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? "FREE 🎉" : `₹${shipping}`}</span>
+                  <span>FREE 🎉</span>
                 </div>
-                {shipping > 0 && (
-                  <p style={{ fontSize: "0.72rem", color: "#9ca3af", fontFamily: "Poppins" }}>
-                    Add ₹{(SHIPPING_THRESHOLD - cartTotal).toLocaleString("en-IN")} more for free shipping
-                  </p>
-                )}
                 <div style={{ height: 1, background: "#e5e7eb", margin: "0.25rem 0" }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Montserrat", fontWeight: 800, fontSize: "1.15rem" }}>
                   <span>Total</span><span>₹{grandTotal.toLocaleString("en-IN")}</span>
