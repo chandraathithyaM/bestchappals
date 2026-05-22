@@ -150,3 +150,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: userMessage }, { status: 500 });
   }
 }
+
+// DELETE: Cancel/delete an unpaid pending order from Supabase
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const dbOrderId = searchParams.get("dbOrderId");
+
+    if (!dbOrderId) {
+      return NextResponse.json({ error: "dbOrderId is required" }, { status: 400 });
+    }
+
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({ success: true, message: "Supabase not configured, skipped deletion" });
+    }
+
+    const supabase = createServerClient();
+
+    // Secure check: Only delete if the order is actually pending/unpaid
+    // (Never allow deletion of paid, processing, or completed orders)
+    const { data: order, error: fetchError } = await supabase
+      .from("orders")
+      .select("payment_status")
+      .eq("id", dbOrderId)
+      .single();
+
+    if (fetchError || !order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    if (order.payment_status !== "pending") {
+      return NextResponse.json({ error: "Cannot delete a paid or verified order" }, { status: 400 });
+    }
+
+    const { error: deleteError } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", dbOrderId);
+
+    if (deleteError) {
+      console.error("[cancel-order] DB delete failed:", deleteError.message);
+      return NextResponse.json({ error: "Failed to delete order" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: "Abandoned order deleted successfully" });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("[cancel-order] Error:", msg);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

@@ -153,13 +153,25 @@ export default function CheckoutPage() {
         // Explicitly whitelist all payment methods so UPI always appears
         method: { upi: true, card: true, netbanking: true, wallet: true, paylater: true },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
             setLoading(false);
             addToast("Payment cancelled. You can retry anytime.", "warning");
+            
+            // Securely delete the abandoned pending order from Supabase
+            if (orderData?.dbOrderId) {
+              try {
+                await fetch(`/api/payment/create-order?dbOrderId=${orderData.dbOrderId}`, {
+                  method: "DELETE",
+                });
+              } catch (delErr) {
+                console.error("[checkout] Failed to delete cancelled order:", delErr);
+              }
+            }
           },
           confirm_close: true,
           animation: true,
         },
+
         handler: async (response) => {
           try {
             // 3. Verify signature server-side
