@@ -19,7 +19,7 @@ interface CreateOrderBody {
 }
 
 // Free shipping on all orders
-const MIN_ORDER_AMOUNT = 100;
+const MIN_ORDER_AMOUNT = 1;
 
 export async function POST(req: NextRequest) {
   try {
