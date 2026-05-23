@@ -26,15 +26,28 @@ export function useCategories() {
         const supabase = getSupabaseBrowser();
         const { data: catData } = await supabase.from("categories").select("*").order("name");
         
-        const { data: prodData } = await supabase.from("products").select("category");
+        const { data: prodData } = await supabase
+          .from("products")
+          .select("category, images, created_at")
+          .order("created_at", { ascending: false });
+          
         const countMap: Record<string, number> = {};
+        const latestImageMap: Record<string, string> = {};
+        
         (prodData || []).forEach((p: any) => {
+          // Count products per category
           countMap[p.category] = (countMap[p.category] || 0) + 1;
+          
+          // Because we order by created_at desc, the first time we see a category, it's the latest product
+          if (!latestImageMap[p.category] && p.images && p.images.length > 0) {
+            latestImageMap[p.category] = p.images[0];
+          }
         });
 
         const merged = (catData || []).map((c: any) => ({
           ...c,
           productCount: countMap[c.name] || 0,
+          image: latestImageMap[c.name] || c.image,
         }));
 
         setCategories(merged);
