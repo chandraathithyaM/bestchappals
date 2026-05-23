@@ -1,10 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useCategories } from "@/hooks/useCategories";
 import { Loader2 } from "lucide-react";
+
+const FallbackImage = ({ src, alt }: { src: string, alt: string }) => {
+  const [imgSrc, setImgSrc] = useState(src || "/logo.png");
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      style={{ objectFit: "cover" }}
+      unoptimized
+      onError={() => {
+        if (imgSrc !== "/logo.png") setImgSrc("/logo.png");
+      }}
+    />
+  );
+};
 
 export default function FeaturedCollections() {
   const { categories: dbCategories, loading } = useCategories();
@@ -76,13 +93,7 @@ export default function FeaturedCollections() {
                     background: "#f5f5f5"
                   }}
                 >
-                  <Image
-                    src={cat.image || "/logo.png"}
-                    alt={cat.name}
-                    fill
-                    style={{ objectFit: "cover" }}
-                    unoptimized
-                  />
+                  <FallbackImage src={cat.image || ""} alt={cat.name} />
                   <div className="overlay-bottom" />
                   <div
                     style={{
@@ -153,13 +164,7 @@ export default function FeaturedCollections() {
                     background: "#f5f5f5"
                   }}
                 >
-                  <Image
-                    src={cat.image || "/logo.png"}
-                    alt={cat.name}
-                    fill
-                    style={{ objectFit: "cover" }}
-                    unoptimized
-                  />
+                  <FallbackImage src={cat.image || ""} alt={cat.name} />
                   <div className="overlay-soft" />
                   <div
                     style={{

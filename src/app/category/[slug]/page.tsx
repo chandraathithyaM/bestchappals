@@ -14,6 +14,7 @@ const SLUG_MAP: Record<string, string> = {
   men: "Men",
   women: "Women",
   sneakers: "Sneakers",
+  sneaker: "Sneakers",
   slides: "Slides",
   crocs: "Crocs",
   formals: "Formals",
