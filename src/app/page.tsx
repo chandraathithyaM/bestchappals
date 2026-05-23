@@ -29,7 +29,7 @@ export default function HomePage() {
         limit={30}
         bg="#f5f5f5"
       />
-      <BrandStory />
+      {/* <BrandStory /> */}
       <ProductGrid
         title="Editor's Picks"
         label="Featured"
