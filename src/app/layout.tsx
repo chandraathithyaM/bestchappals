@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import CartDrawer from "@/components/CartDrawer";
 import SmoothScroll from "@/components/SmoothScroll";
 import { ToastProvider } from "@/components/Toast";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
@@ -37,13 +38,15 @@ export default function RootLayout({
           />
         </head>
         <body>
-          <ToastProvider>
-            <SmoothScroll>
-              <Navbar />
-              <main>{children}</main>
-              <CartDrawer />
-            </SmoothScroll>
-          </ToastProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <SmoothScroll>
+                <Navbar />
+                <main>{children}</main>
+                <CartDrawer />
+              </SmoothScroll>
+            </ToastProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

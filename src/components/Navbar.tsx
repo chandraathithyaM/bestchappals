@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Heart, ShoppingBag, Menu, X, PackageSearch, LogIn } from "lucide-react";
+import { Search, Heart, ShoppingBag, Menu, X, PackageSearch, LogIn, Sun, Moon } from "lucide-react";
 import { useCartStore } from "@/lib/store";
 import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
+import { useTheme } from "@/components/ThemeProvider";
+import SearchOverlay from "@/components/SearchOverlay";
 
 
 const NAV_LINKS = [
@@ -26,8 +28,10 @@ export default function Navbar() {
   const [scrolled, setScrolled]     = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted]       = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { count, openCart, wishlist } = useCartStore();
   const { isSignedIn, user } = useUser();
+  const { theme, toggleTheme } = useTheme();
   const cartCount = count();
 
   const isAdminPage = pathname?.startsWith("/admin");
@@ -57,10 +61,10 @@ export default function Navbar() {
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
         style={{
           background: scrolled
-            ? "rgba(255,255,255,0.92)"
+            ? "var(--nav-bg)"
             : "transparent",
-          backdropFilter: scrolled ? "blur(20px)" : "none",
-          borderBottom: scrolled ? "1px solid #e5e7eb" : "none",
+          backdropFilter: scrolled ? "var(--nav-blur)" : "none",
+          borderBottom: scrolled ? "1px solid var(--border)" : "none",
           height: "72px",
         }}
       >
@@ -85,10 +89,10 @@ export default function Navbar() {
                   fontWeight: 900,
                   fontSize: "1.15rem",
                   letterSpacing: "-0.03em",
-                  color: "#111111",
+                  color: "var(--fg)",
                 }}
               >
-                BEST<span style={{ color: "#2563EB" }}>CHAPPALS</span>
+                BEST<span style={{ color: "var(--accent)" }}>CHAPPALS</span>
               </span>
               <span
                 style={{
@@ -96,7 +100,7 @@ export default function Navbar() {
                   fontWeight: 400,
                   fontSize: "0.5rem",
                   letterSpacing: "0.2em",
-                  color: "#6b7280",
+                  color: "var(--muted)",
                   textTransform: "uppercase",
                 }}
               >
@@ -115,19 +119,40 @@ export default function Navbar() {
           </nav>
 
           {/* Icons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Search */}
             <button
               aria-label="Search"
-              className="hidden md:flex w-9 h-9 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              id="search-toggle"
+              onClick={() => setSearchOpen(true)}
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-full transition-colors"
+              style={{ color: "var(--fg)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
               <Search size={18} />
             </button>
 
+            {/* Theme Toggle */}
+            {mounted && (
+              <button
+                aria-label="Toggle dark mode"
+                id="theme-toggle"
+                onClick={toggleTheme}
+                className="theme-toggle"
+                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            )}
+
             <Link
               href="/wishlist"
               aria-label="Wishlist"
-              className="relative hidden md:flex w-9 h-9 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-              style={{ color: "#111" }}
+              className="relative hidden md:flex w-9 h-9 items-center justify-center rounded-full transition-colors"
+              style={{ color: "var(--fg)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
             >
               <Heart size={18} />
               {mounted && wishlist.length > 0 && (
@@ -152,9 +177,11 @@ export default function Navbar() {
                 <Link
                   href="/orders"
                   aria-label="My Orders"
-                  className="hidden md:flex w-9 h-9 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                  className="hidden md:flex w-9 h-9 items-center justify-center rounded-full transition-colors"
                   title="My Orders"
-                  style={{ color: "#111" }}
+                  style={{ color: "var(--fg)" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
                 >
                   <PackageSearch size={18} />
                 </Link>
@@ -177,8 +204,8 @@ export default function Navbar() {
                   <button
                     id="sign-in-btn"
                     aria-label="Sign In"
-                    className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors text-sm font-medium"
-                    style={{ fontFamily: "Poppins", fontSize: "0.78rem" }}
+                    className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors text-sm font-medium"
+                    style={{ fontFamily: "Poppins", fontSize: "0.78rem", borderColor: "var(--border)", color: "var(--fg)" }}
                   >
                     <LogIn size={14} />
                     Sign In
@@ -191,7 +218,10 @@ export default function Navbar() {
               aria-label="Cart"
               id="cart-button"
               onClick={openCart}
-              className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              className="relative w-9 h-9 flex items-center justify-center rounded-full transition-colors"
+              style={{ color: "var(--fg)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
               <ShoppingBag size={18} />
               {mounted && cartCount > 0 && (
@@ -211,13 +241,19 @@ export default function Navbar() {
               aria-label="Menu"
               id="mobile-menu-toggle"
               onClick={() => setMobileOpen((v) => !v)}
-              className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full transition-colors"
+              style={{ color: "var(--fg)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
       </header>
+
+      {/* Search Overlay */}
+      <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Mobile Menu */}
       <AnimatePresence>
@@ -260,6 +296,29 @@ export default function Navbar() {
                 </div>
               </div>
             </div>
+
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => { setMobileOpen(false); setTimeout(() => setSearchOpen(true), 100); }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.05)",
+                color: "rgba(255,255,255,0.5)",
+                fontFamily: "Poppins",
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <Search size={18} />
+              Search products...
+            </button>
 
             <nav className="flex flex-col gap-2">
               {NAV_LINKS.map((link, i) => (
