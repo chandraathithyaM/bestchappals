@@ -77,7 +77,7 @@ export default function FeaturedCollections() {
                   }}
                 >
                   <Image
-                    src={cat.image || "/placeholder.jpg"}
+                    src={cat.image || "/logo.png"}
                     alt={cat.name}
                     fill
                     style={{ objectFit: "cover" }}
@@ -154,7 +154,7 @@ export default function FeaturedCollections() {
                   }}
                 >
                   <Image
-                    src={cat.image || "/placeholder.jpg"}
+                    src={cat.image || "/logo.png"}
                     alt={cat.name}
                     fill
                     style={{ objectFit: "cover" }}

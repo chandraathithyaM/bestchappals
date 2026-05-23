@@ -5,10 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Heart, ShoppingBag, Menu, X, PackageSearch, LogIn, Sun, Moon } from "lucide-react";
+import { Search, Heart, ShoppingBag, Menu, X, PackageSearch, LogIn } from "lucide-react";
 import { useCartStore } from "@/lib/store";
 import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
-import { useTheme } from "@/components/ThemeProvider";
 import SearchOverlay from "@/components/SearchOverlay";
 
 
@@ -31,7 +30,6 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { count, openCart, wishlist } = useCartStore();
   const { isSignedIn, user } = useUser();
-  const { theme, toggleTheme } = useTheme();
   const cartCount = count();
 
   const isAdminPage = pathname?.startsWith("/admin");
@@ -133,18 +131,6 @@ export default function Navbar() {
               <Search size={18} />
             </button>
 
-            {/* Theme Toggle */}
-            {mounted && (
-              <button
-                aria-label="Toggle dark mode"
-                id="theme-toggle"
-                onClick={toggleTheme}
-                className="theme-toggle"
-                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-            )}
 
             <Link
               href="/wishlist"

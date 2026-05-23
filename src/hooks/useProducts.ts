@@ -47,7 +47,7 @@ export function useProducts(opts?: {
       const supabase = getSupabaseBrowser();
       let query = supabase.from("products").select("*");
 
-      if (opts?.category) query = query.eq("category", opts.category);
+      if (opts?.category) query = query.ilike("category", opts.category);
       if (opts?.trending) query = query.eq("trending", true);
       if (opts?.featured) query = query.eq("featured", true);
       if (opts?.isNew) query = query.eq("is_new", true);
