@@ -3,11 +3,11 @@
 import { motion } from "framer-motion";
 
 const testimonials = [
-  { id: 1, name: "Priya M.", location: "Chennai", text: "Amazing quality! Got my sneakers within 2 days. Super premium packaging. Will definitely order again!", rating: 5, product: "Genz Casual Low-Top" },
-  { id: 2, name: "Rahul S.", location: "Bangalore", text: "Best crocs I've bought online. Ultra comfortable for daily wear. The cushion is top-notch.", rating: 5, product: "LiteRide Crocs" },
-  { id: 3, name: "Anjali K.", location: "Coimbatore", text: "Ordered for my daughter. The Ladies collection has really trendy options. Fast delivery!", rating: 5, product: "Soft Cushion Heel" },
-  { id: 4, name: "Karthik R.", location: "Salem", text: "Very genuine quality. Ordered via WhatsApp and the process was smooth. Great experience.", rating: 5, product: "Bata V-Strap" },
-  { id: 5, name: "Divya P.", location: "Madurai", text: "The slides are so comfortable! Good value for money. Highly recommend!", rating: 5, product: "Flip Flop Elite" },
+  { id: 1, name: "Priya M.", location: "punjai puliampatti", text: "Amazing quality! Got my sneakers within 2 days. Super premium packaging. Will definitely order again!", rating: 5, product: "Genz Casual Low-Top" },
+  { id: 2, name: "Rahul S.", location: "sathyamangalam", text: "Best crocs I've bought online. Ultra comfortable for daily wear. The cushion is top-notch.", rating: 5, product: "LiteRide Crocs" },
+  { id: 3, name: "Anjali K.", location: "Coimbatore", text: "Ordered for my daughter. The Ladies collection has really trendy options. Fast delivery!", rating: 4, product: "Soft Cushion Heel" },
+  { id: 4, name: "Karthik R.", location: "punjai puliampatti", text: "Very genuine quality. Ordered via WhatsApp and the process was smooth. Great experience.", rating: 5, product: "Bata V-Strap" },
+  { id: 5, name: "Divya P.", location: "Tiruppur", text: "The slides are so comfortable! Good value for money. Highly recommend!", rating: 4, product: "Flip Flop Elite" },
 ];
 
 function Stars({ count }: { count: number }) {
