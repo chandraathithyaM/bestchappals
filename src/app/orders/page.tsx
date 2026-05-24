@@ -74,12 +74,17 @@ async function downloadOrderInvoice(order: Order) {
       const img = new window.Image();
       img.crossOrigin = "Anonymous";
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/jpeg"));
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/jpeg"));
+        } catch (err) {
+          console.error("Canvas export failed (likely CORS issue):", url, err);
+          resolve(null); // Resolve to null instead of crashing, PDF will still generate without image
+        }
       };
       img.onerror = () => resolve(null);
       img.src = url;
