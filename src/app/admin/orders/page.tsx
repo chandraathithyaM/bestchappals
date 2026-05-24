@@ -136,7 +136,13 @@ export default function OrdersPage() {
               </thead>
               <tbody>
                 {orders.map(order => (
-                  <tr key={order.id}>
+                  <tr 
+                    key={order.id} 
+                    onClick={() => setSelectedOrder(order)} 
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "var(--admin-bg-hover, #f9fafb)"}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = ""}
+                  >
                     <td style={{ fontWeight: 600, fontSize: "0.8rem", fontFamily: "monospace" }}>
                       {order.id.substring(0, 8)}...
                     </td>
@@ -153,7 +159,7 @@ export default function OrdersPage() {
                     </td>
                     <td style={{ fontWeight: 600 }}>{formatCurrency(order.amount)}</td>
                     <td><StatusBadge status={order.payment_status} type="payment" /></td>
-                    <td>
+                    <td onClick={e => e.stopPropagation()}>
                       <select
                         className="admin-select"
                         value={order.order_status}
@@ -168,7 +174,7 @@ export default function OrdersPage() {
                     <td style={{ fontSize: "0.8rem", color: "var(--admin-text-secondary)" }}>
                       {new Date(order.created_at).toLocaleDateString("en-IN")}
                     </td>
-                    <td>
+                    <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => setSelectedOrder(order)} className="admin-btn-icon" title="View Details">
                           <Eye size={14} />
