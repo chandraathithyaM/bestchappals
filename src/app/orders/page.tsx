@@ -12,6 +12,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import type { Order } from "@/lib/supabase";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ─── Status badge config ─────────────────────────────────────────────────────
 const ORDER_STATUS_CONFIG = {
@@ -29,75 +31,121 @@ const PAYMENT_STATUS_CONFIG = {
   refunded: { label: "Refunded", color: "#8b5cf6" },
 };
 
-// ─── Download order as text invoice ─────────────────────────────────────────
-function downloadOrderInvoice(order: Order) {
-  const addr = order.shipping_address;
+// ─── Download order as PDF invoice ─────────────────────────────────────────
+async function downloadOrderInvoice(order: Order) {
+  const doc = new jsPDF();
+  const shortId = order.id.slice(-8).toUpperCase();
   const dateStr = new Date(order.created_at).toLocaleDateString("en-IN", {
     day: "numeric", month: "long", year: "numeric",
   });
-  const shortId = order.id.slice(-8).toUpperCase();
 
-  const lines: string[] = [
-    "═══════════════════════════════════════════════════",
-    "           BESTCHAPPALS — ORDER INVOICE            ",
-    "═══════════════════════════════════════════════════",
-    "",
-    `Order ID    : #${shortId}`,
-    `Date        : ${dateStr}`,
-    `Payment ID  : ${order.payment_id || "N/A"}`,
-    `Status      : ${ORDER_STATUS_CONFIG[order.order_status].label}`,
-    `Payment     : ${PAYMENT_STATUS_CONFIG[order.payment_status].label}`,
-    "",
-    "─── DELIVERY ADDRESS ──────────────────────────────",
-    `Name        : ${addr.fullName}`,
-    `Phone       : ${addr.phone}`,
-    `Email       : ${addr.email || "N/A"}`,
-    `Address     : ${addr.addressLine1}`,
-    addr.addressLine2 ? `              ${addr.addressLine2}` : "",
-    `City        : ${addr.city}`,
-    `State       : ${addr.state}`,
-    `Pincode     : ${addr.pincode}`,
-    "",
-    "─── ORDERED ITEMS ─────────────────────────────────",
-    "",
-  ];
+  // Header
+  doc.setFontSize(22);
+  doc.setTextColor(17, 17, 17);
+  doc.text("BESTCHAPPALS", 14, 20);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text("INVOICE", 14, 28);
 
-  order.products.forEach((p, i) => {
-    lines.push(`  ${i + 1}. ${p.name}`);
-    lines.push(`     Category : ${p.category}`);
-    lines.push(`     Size     : ${p.size}`);
-    lines.push(`     Qty      : ${p.quantity}`);
-    lines.push(`     Price    : ₹${p.price.toLocaleString("en-IN")}`);
-    lines.push(`     Subtotal : ₹${p.subtotal.toLocaleString("en-IN")}`);
-    lines.push("");
+  doc.setFontSize(11);
+  doc.setTextColor(50, 50, 50);
+  doc.text(`Order ID: #${shortId}`, 14, 40);
+  doc.text(`Date: ${dateStr}`, 14, 46);
+  doc.text(`Status: ${ORDER_STATUS_CONFIG[order.order_status].label}`, 14, 52);
+  
+  // Delivery Address
+  doc.setFontSize(12);
+  doc.setTextColor(17, 17, 17);
+  doc.text("Delivery Address", 120, 40);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  const addr = order.shipping_address;
+  doc.text(addr.fullName, 120, 46);
+  doc.text(addr.addressLine1, 120, 52);
+  if (addr.addressLine2) doc.text(addr.addressLine2, 120, 58);
+  doc.text(`${addr.city}, ${addr.state} - ${addr.pincode}`, 120, addr.addressLine2 ? 64 : 58);
+  doc.text(`Phone: ${addr.phone}`, 120, addr.addressLine2 ? 70 : 64);
+
+  // Pre-load images
+  const loadImage = (url: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/jpeg"));
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  // Table Data
+  const tableData = [];
+  for (const p of order.products) {
+    const imgData = await loadImage(p.image);
+    tableData.push([
+      imgData,
+      `${p.name}\nSize: ${p.size}\nCategory: ${p.category}`,
+      p.quantity.toString(),
+      `Rs. ${p.price.toLocaleString("en-IN")}`,
+      `Rs. ${p.subtotal.toLocaleString("en-IN")}`
+    ]);
+  }
+
+  autoTable(doc, {
+    startY: 85,
+    head: [["Image", "Product", "Qty", "Price", "Subtotal"]],
+    body: tableData,
+    didDrawCell: (data) => {
+      if (data.column.index === 0 && data.cell.section === 'body') {
+        const imgData = tableData[data.row.index][0];
+        if (imgData) {
+          doc.addImage(imgData as string, "JPEG", data.cell.x + 2, data.cell.y + 2, 12, 12);
+        }
+      }
+    },
+    bodyStyles: { minCellHeight: 16, valign: 'middle' },
+    columnStyles: {
+      0: { cellWidth: 20 },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 15, halign: 'center' },
+      3: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 30, halign: 'right' }
+    },
+    headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255] }
   });
 
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  
   const subtotal = order.products.reduce((s, p) => s + p.subtotal, 0);
   const shipping = order.amount - subtotal + (order.discount || 0);
 
-  lines.push("─── PAYMENT SUMMARY ───────────────────────────────");
-  lines.push(`  Subtotal    : ₹${subtotal.toLocaleString("en-IN")}`);
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  doc.text("Subtotal:", 140, finalY);
+  doc.text(`Rs. ${subtotal.toLocaleString("en-IN")}`, 180, finalY, { align: "right" });
+  
   if (order.discount > 0) {
-    lines.push(`  Discount    : -₹${order.discount.toLocaleString("en-IN")}`);
+    doc.text("Discount:", 140, finalY + 6);
+    doc.text(`-Rs. ${(order.discount || 0).toLocaleString("en-IN")}`, 180, finalY + 6, { align: "right" });
   }
-  lines.push(`  Shipping    : ${shipping > 0 ? `₹${shipping.toLocaleString("en-IN")}` : "FREE"}`);
-  lines.push(`  TOTAL PAID  : ₹${order.amount.toLocaleString("en-IN")}`);
-  lines.push("");
-  lines.push("═══════════════════════════════════════════════════");
-  lines.push("  Thank you for shopping with BestChappals!       ");
-  lines.push("  For queries: 8838247446 | wa.me/918838247446     ");
-  lines.push("═══════════════════════════════════════════════════");
 
-  const content = lines.filter((l) => l !== undefined).join("\n");
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `BestChappals-Order-${shortId}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  doc.text("Shipping:", 140, finalY + 12);
+  doc.text(shipping > 0 ? `Rs. ${shipping.toLocaleString("en-IN")}` : "FREE", 180, finalY + 12, { align: "right" });
+
+  doc.setFontSize(12);
+  doc.setTextColor(17, 17, 17);
+  doc.text("Total Paid:", 140, finalY + 20);
+  doc.text(`Rs. ${order.amount.toLocaleString("en-IN")}`, 180, finalY + 20, { align: "right" });
+
+  doc.save(`BestChappals-Order-${shortId}.pdf`);
 }
 
 // ─── Single order card ────────────────────────────────────────────────────────
@@ -135,24 +183,32 @@ function OrderCard({ order }: { order: Order }) {
         }}
         onClick={() => setExpanded((v) => !v)}
       >
-        {/* Status icon */}
+        {/* Product Image / Status Icon */}
         <div
           style={{
-            width: 42, height: 42, borderRadius: 10,
-            background: statusCfg.bg,
+            width: 52, height: 52, borderRadius: 10,
+            background: "#f5f5f5",
             display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0, overflow: "hidden"
           }}
         >
-          <StatusIcon size={20} color={statusCfg.color} />
+          {order.products[0]?.image ? (
+            <Image src={order.products[0].image} alt="Product" width={52} height={52} style={{objectFit: 'cover', width: '100%', height: '100%'}} unoptimized />
+          ) : (
+            <StatusIcon size={20} color={statusCfg.color} />
+          )}
         </div>
 
         {/* Order info */}
         <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontFamily: "Montserrat", fontWeight: 800, fontSize: "0.95rem", color: "#111", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {order.products.length > 0 ? order.products[0].name : `Order #${shortId}`}
+            {order.products.length > 1 && <span style={{fontSize: "0.75rem", color: "#6b7280", fontWeight: 600, marginLeft: 6}}>+ {order.products.length - 1} more</span>}
+          </p>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <p style={{ fontFamily: "Montserrat", fontWeight: 800, fontSize: "0.95rem", color: "#111" }}>
+            <span style={{ fontSize: "0.75rem", color: "#6b7280", fontFamily: "Poppins", fontWeight: 600 }}>
               #{shortId}
-            </p>
+            </span>
             <span
               style={{
                 padding: "2px 8px",
@@ -181,7 +237,7 @@ function OrderCard({ order }: { order: Order }) {
             </span>
           </div>
           <p style={{ fontSize: "0.78rem", color: "#9ca3af", fontFamily: "Poppins", marginTop: 3 }}>
-            {dateStr} · {order.products.length} item{order.products.length > 1 ? "s" : ""}
+            {dateStr} · Size {order.products[0]?.size || "N/A"}
           </p>
         </div>
 
