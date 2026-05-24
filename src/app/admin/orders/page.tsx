@@ -222,13 +222,14 @@ export default function OrdersPage() {
             <div style={{ borderTop: "1px solid var(--admin-border)", paddingTop: 12 }}>
               <strong>Products:</strong>
               {(selectedOrder.products || []).map((p: any, i: number) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--admin-border)" }}>
-                  {p.image && <img src={p.image} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover" }} />}
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" }}>
+                  {p.image && <img src={p.image} alt="" style={{ width: 80, height: 100, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500 }}>{p.name}</div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--admin-text-muted)" }}>Size: {p.size} × {p.quantity}</div>
+                    <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 4 }}>{p.name}</div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--admin-text-secondary)", marginBottom: 2 }}>Category: {p.category || "Footwear"}</div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--admin-text-muted)", fontWeight: 500 }}>Size: {p.size} × {p.quantity}</div>
                   </div>
-                  <span style={{ fontWeight: 600 }}>{formatCurrency(p.subtotal)}</span>
+                  <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{formatCurrency(p.subtotal)}</span>
                 </div>
               ))}
             </div>

@@ -127,7 +127,7 @@ async function downloadOrderInvoice(order: Order) {
     headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255] }
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const finalY = ((doc as any).previousAutoTable?.finalY || (doc as any).lastAutoTable?.finalY || 150) + 10;
   
   const subtotal = order.products.reduce((s, p) => s + p.subtotal, 0);
   const shipping = order.amount - subtotal + (order.discount || 0);

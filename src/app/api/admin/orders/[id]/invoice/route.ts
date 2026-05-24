@@ -111,7 +111,7 @@ export async function GET(
     headStyles: { fillColor: [37, 99, 235] },
   });
 
-  const finalY = doc.lastAutoTable.finalY || 150;
+  const finalY = (doc as any).previousAutoTable?.finalY || (doc as any).lastAutoTable?.finalY || 150;
 
   // Totals
   doc.text("Subtotal:", 140, finalY + 10);
