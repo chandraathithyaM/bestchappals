@@ -33,157 +33,119 @@ const PAYMENT_STATUS_CONFIG = {
 
 // ─── Download order as PDF invoice ─────────────────────────────────────────
 async function downloadOrderInvoice(order: Order) {
-  try {
-    const doc = new jsPDF();
-    const shortId = order.id.slice(-8).toUpperCase();
-    const dateStr = new Date(order.created_at).toLocaleDateString("en-IN", {
-      day: "numeric", month: "long", year: "numeric",
+  const doc = new jsPDF();
+  const shortId = order.id.slice(-8).toUpperCase();
+  const dateStr = new Date(order.created_at).toLocaleDateString("en-IN", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  // Header
+  doc.setFontSize(22);
+  doc.setTextColor(17, 17, 17);
+  doc.text("BESTCHAPPALS", 14, 20);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text("INVOICE", 14, 28);
+
+  doc.setFontSize(11);
+  doc.setTextColor(50, 50, 50);
+  doc.text(`Order ID: #${shortId}`, 14, 40);
+  doc.text(`Date: ${dateStr}`, 14, 46);
+  doc.text(`Status: ${ORDER_STATUS_CONFIG[order.order_status].label}`, 14, 52);
+  
+  // Delivery Address
+  doc.setFontSize(12);
+  doc.setTextColor(17, 17, 17);
+  doc.text("Delivery Address", 120, 40);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  const addr = order.shipping_address;
+  doc.text(addr.fullName, 120, 46);
+  doc.text(addr.addressLine1, 120, 52);
+  if (addr.addressLine2) doc.text(addr.addressLine2, 120, 58);
+  doc.text(`${addr.city}, ${addr.state} - ${addr.pincode}`, 120, addr.addressLine2 ? 64 : 58);
+  doc.text(`Phone: ${addr.phone}`, 120, addr.addressLine2 ? 70 : 64);
+
+  // Pre-load images
+  const loadImage = (url: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/jpeg"));
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
     });
+  };
 
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(17, 17, 17);
-    doc.text("BESTCHAPPALS", 14, 20);
-
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Puliampatti, Tamil Nadu | Phone: +91 8838247446", 14, 28);
-
-    doc.setFontSize(18);
-    doc.setTextColor(17, 17, 17);
-    doc.text("INVOICE", 160, 20, { align: "right" });
-
-    doc.setFontSize(10);
-    doc.setTextColor(50, 50, 50);
-    doc.text(`Order ID: #${shortId}`, 14, 40);
-    doc.text(`Date: ${dateStr}`, 14, 46);
-    doc.text(`Status: ${ORDER_STATUS_CONFIG[order.order_status]?.label || order.order_status}`, 14, 52);
-    doc.text(`Payment: ${PAYMENT_STATUS_CONFIG[order.payment_status]?.label || order.payment_status}`, 14, 58);
-
-    // Delivery Address
-    doc.setFontSize(12);
-    doc.setTextColor(17, 17, 17);
-    doc.text("Delivery Address", 120, 40);
-
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
-    const addr = order.shipping_address;
-    doc.text(addr.fullName || "Customer", 120, 46);
-    doc.text(addr.addressLine1 || "", 120, 52);
-    if (addr.addressLine2) doc.text(addr.addressLine2, 120, 58);
-    const addrY = addr.addressLine2 ? 64 : 58;
-    doc.text(`${addr.city || ""}, ${addr.state || ""} - ${addr.pincode || ""}`, 120, addrY);
-    doc.text(`Phone: ${addr.phone || "N/A"}`, 120, addrY + 6);
-
-    // Try to load product images (with CORS-safe fallback)
-    const loadImage = (url: string): Promise<string | null> => {
-      return new Promise((resolve) => {
-        if (!url || url === "/placeholder.jpg") {
-          resolve(null);
-          return;
-        }
-        const img = new window.Image();
-        img.crossOrigin = "Anonymous";
-        img.onload = () => {
-          try {
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.min(img.width, 200);
-            canvas.height = Math.min(img.height, 200);
-            const ctx = canvas.getContext("2d");
-            ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL("image/jpeg", 0.7));
-          } catch {
-            // CORS tainted canvas — skip image
-            resolve(null);
-          }
-        };
-        img.onerror = () => resolve(null);
-        // Set a timeout so we don't wait forever
-        setTimeout(() => resolve(null), 5000);
-        img.src = url;
-      });
-    };
-
-    // Table Data — build rows with product details
-    const tableBody: string[][] = [];
-    const imageDataArr: (string | null)[] = [];
-
-    for (const p of order.products) {
-      const imgData = await loadImage(p.image || "");
-      imageDataArr.push(imgData);
-      tableBody.push([
-        "", // placeholder for image column
-        `${p.name || "Product"}`,
-        `${p.category || "N/A"}`,
-        `${p.size || "N/A"}`,
-        String(p.quantity || 1),
-        `Rs. ${Number(p.price || 0).toLocaleString("en-IN")}`,
-        `Rs. ${Number(p.subtotal || 0).toLocaleString("en-IN")}`,
-      ]);
-    }
-
-    autoTable(doc, {
-      startY: 75,
-      head: [["", "Product", "Category", "Size", "Qty", "Price", "Subtotal"]],
-      body: tableBody,
-      didDrawCell: (data) => {
-        if (data.column.index === 0 && data.cell.section === "body") {
-          const imgData = imageDataArr[data.row.index];
-          if (imgData) {
-            try {
-              doc.addImage(imgData, "JPEG", data.cell.x + 2, data.cell.y + 2, 12, 12);
-            } catch {
-              // Skip image if addImage fails
-            }
-          }
-        }
-      },
-      bodyStyles: { minCellHeight: 16, valign: "middle", fontSize: 9 },
-      columnStyles: {
-        0: { cellWidth: 18 },
-        1: { cellWidth: 40 },
-        2: { cellWidth: 22 },
-        3: { cellWidth: 14, halign: "center" },
-        4: { cellWidth: 12, halign: "center" },
-        5: { cellWidth: 28, halign: "right" },
-        6: { cellWidth: 28, halign: "right" },
-      },
-      headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255], fontSize: 8 },
-    });
-
-    const finalY = ((doc as any).lastAutoTable?.finalY || 150) + 10;
-
-    const subtotal = order.products.reduce((s, p) => s + (p.subtotal || 0), 0);
-    const shipping = order.amount - subtotal + (order.discount || 0);
-
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
-    doc.text("Subtotal:", 145, finalY);
-    doc.text(`Rs. ${subtotal.toLocaleString("en-IN")}`, 190, finalY, { align: "right" });
-
-    if (order.discount > 0) {
-      doc.text("Discount:", 145, finalY + 6);
-      doc.text(`-Rs. ${(order.discount || 0).toLocaleString("en-IN")}`, 190, finalY + 6, { align: "right" });
-    }
-
-    doc.text("Shipping:", 145, finalY + 12);
-    doc.text(shipping > 0 ? `Rs. ${shipping.toLocaleString("en-IN")}` : "FREE", 190, finalY + 12, { align: "right" });
-
-    doc.setFontSize(12);
-    doc.setTextColor(17, 17, 17);
-    doc.text("Total Paid:", 145, finalY + 22);
-    doc.text(`Rs. ${order.amount.toLocaleString("en-IN")}`, 190, finalY + 22, { align: "right" });
-
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text("Thank you for shopping with BestChappals!", 105, 280, { align: "center" });
-
-    doc.save(`BestChappals-Order-${shortId}.pdf`);
-  } catch (err) {
-    console.error("PDF generation failed:", err);
-    alert("Failed to generate invoice. Please try again.");
+  // Table Data
+  const tableData = [];
+  for (const p of order.products) {
+    const imgData = await loadImage(p.image || "/placeholder.jpg");
+    tableData.push([
+      imgData,
+      `${p.name}\nSize: ${p.size}\nCategory: ${p.category}`,
+      p.quantity.toString(),
+      `Rs. ${p.price.toLocaleString("en-IN")}`,
+      `Rs. ${p.subtotal.toLocaleString("en-IN")}`
+    ]);
   }
+
+  autoTable(doc, {
+    startY: 85,
+    head: [["Image", "Product", "Qty", "Price", "Subtotal"]],
+    body: tableData,
+    didDrawCell: (data) => {
+      if (data.column.index === 0 && data.cell.section === 'body') {
+        const imgData = tableData[data.row.index][0];
+        if (imgData) {
+          doc.addImage(imgData as string, "JPEG", data.cell.x + 2, data.cell.y + 2, 12, 12);
+        }
+      }
+    },
+    bodyStyles: { minCellHeight: 16, valign: 'middle' },
+    columnStyles: {
+      0: { cellWidth: 20 },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 15, halign: 'center' },
+      3: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 30, halign: 'right' }
+    },
+    headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255] }
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  
+  const subtotal = order.products.reduce((s, p) => s + p.subtotal, 0);
+  const shipping = order.amount - subtotal + (order.discount || 0);
+
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  doc.text("Subtotal:", 140, finalY);
+  doc.text(`Rs. ${subtotal.toLocaleString("en-IN")}`, 180, finalY, { align: "right" });
+  
+  if (order.discount > 0) {
+    doc.text("Discount:", 140, finalY + 6);
+    doc.text(`-Rs. ${(order.discount || 0).toLocaleString("en-IN")}`, 180, finalY + 6, { align: "right" });
+  }
+
+  doc.text("Shipping:", 140, finalY + 12);
+  doc.text(shipping > 0 ? `Rs. ${shipping.toLocaleString("en-IN")}` : "FREE", 180, finalY + 12, { align: "right" });
+
+  doc.setFontSize(12);
+  doc.setTextColor(17, 17, 17);
+  doc.text("Total Paid:", 140, finalY + 20);
+  doc.text(`Rs. ${order.amount.toLocaleString("en-IN")}`, 180, finalY + 20, { align: "right" });
+
+  doc.save(`BestChappals-Order-${shortId}.pdf`);
 }
 
 // ─── Single order card ────────────────────────────────────────────────────────

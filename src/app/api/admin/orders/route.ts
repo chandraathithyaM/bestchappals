@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServerClient } from "@/lib/supabase";
+import { products as localCatalog } from "@/lib/products";
 
 // GET: List orders with filters
 export async function GET(req: NextRequest) {
@@ -39,37 +40,52 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Heal missing product images from products table
+  // Heal missing product details from products table or local catalog
   if (data && data.length > 0) {
     const productIdsToFetch = new Set<string>();
     for (const order of data) {
       if (Array.isArray(order.products)) {
         for (const p of order.products) {
-          if (!p.image && p.productId) {
+          if (p.productId) {
             productIdsToFetch.add(p.productId);
           }
         }
       }
     }
 
+    const dbProductMap = new Map<string, any>();
     if (productIdsToFetch.size > 0) {
       const { data: dbProducts } = await supabase
         .from("products")
-        .select("id, images")
+        .select("id, name, category, images, sizes")
         .in("id", Array.from(productIdsToFetch));
 
-      const imgMap = new Map<string, string>();
       for (const dp of dbProducts || []) {
-        if (dp.images && dp.images.length > 0) {
-          imgMap.set(dp.id, dp.images[0]);
-        }
+        dbProductMap.set(dp.id, dp);
       }
+    }
 
-      for (const order of data) {
-        if (Array.isArray(order.products)) {
-          for (const p of order.products) {
-            if (!p.image && p.productId) {
-              p.image = imgMap.get(p.productId) || null;
+    for (const order of data) {
+      if (Array.isArray(order.products)) {
+        for (const p of order.products) {
+          if (p.productId) {
+            const dbProd = dbProductMap.get(p.productId);
+            const localProd = localCatalog.find((lp) => lp.id === p.productId);
+
+            if (!p.image || p.image === "/placeholder.jpg") {
+              p.image = dbProd?.images?.[0] || localProd?.images?.[0] || localProd?.image || "/placeholder.jpg";
+            }
+            if (!p.name) {
+              p.name = dbProd?.name || localProd?.name || "Product";
+            }
+            if (!p.category) {
+              p.category = dbProd?.category || localProd?.category || "Footwear";
+            }
+            if (!p.size) {
+              // Try to get default size
+              const sizesList = dbProd?.sizes || localProd?.sizes || [];
+              const firstSize = typeof sizesList[0] === 'string' ? sizesList[0] : sizesList[0]?.size;
+              p.size = firstSize || "N/A";
             }
           }
         }
