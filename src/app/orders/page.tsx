@@ -110,7 +110,8 @@ async function downloadOrderInvoice(order: Order) {
     body: tableData,
     didDrawCell: (data) => {
       if (data.column.index === 0 && data.cell.section === 'body') {
-        const imgData = tableData[data.row.index][0];
+        const rowData = tableData[data.row.index];
+        const imgData = rowData ? rowData[0] : null;
         if (imgData) {
           doc.addImage(imgData as string, "JPEG", data.cell.x + 2, data.cell.y + 2, 12, 12);
         }

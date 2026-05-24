@@ -223,7 +223,7 @@ export default function OrdersPage() {
               <strong>Products:</strong>
               {(selectedOrder.products || []).map((p: any, i: number) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" }}>
-                  {p.image && <img src={p.image} alt="" style={{ width: 80, height: 100, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
+                  {p.image && <img src={p.image} alt="" style={{ width: 200, height: 200, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 4 }}>{p.name}</div>
                     <div style={{ fontSize: "0.8rem", color: "var(--admin-text-secondary)", marginBottom: 2 }}>Category: {p.category || "Footwear"}</div>
