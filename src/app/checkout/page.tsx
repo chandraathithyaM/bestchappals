@@ -119,7 +119,7 @@ export default function CheckoutPage() {
             productId: i.product.id,
             name: i.product.name,
             category: i.product.category,
-            image: i.product.image,
+            image: i.product.images?.[0] || i.product.image || "/placeholder.jpg",
             price: i.product.offer_price || i.product.price,
             size: i.size,
             quantity: i.quantity,
@@ -343,7 +343,7 @@ export default function CheckoutPage() {
                 {items.map((item) => (
                   <div key={`${item.product.id}-${item.size}`} style={{ display: "flex", gap: 12, alignItems: "center" }}>
                     <div style={{ width: 56, height: 70, borderRadius: 8, overflow: "hidden", background: "#f5f5f5", flexShrink: 0 }}>
-                      <Image src={item.product.image || "/placeholder.jpg"} alt={item.product.name} width={56} height={70} style={{ width: "100%", height: "100%", objectFit: "cover" }} unoptimized />
+                      <Image src={item.product.images?.[0] || item.product.image || "/placeholder.jpg"} alt={item.product.name} width={56} height={70} style={{ width: "100%", height: "100%", objectFit: "cover" }} unoptimized />
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: "0.8rem", color: "#111" }}>{item.product.name}</p>

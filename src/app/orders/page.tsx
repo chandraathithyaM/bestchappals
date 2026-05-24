@@ -89,7 +89,7 @@ async function downloadOrderInvoice(order: Order) {
   // Table Data
   const tableData = [];
   for (const p of order.products) {
-    const imgData = await loadImage(p.image);
+    const imgData = await loadImage(p.image || "/placeholder.jpg");
     tableData.push([
       imgData,
       `${p.name}\nSize: ${p.size}\nCategory: ${p.category}`,
@@ -192,8 +192,8 @@ function OrderCard({ order }: { order: Order }) {
             flexShrink: 0, overflow: "hidden"
           }}
         >
-          {order.products[0]?.image ? (
-            <Image src={order.products[0].image} alt="Product" width={52} height={52} style={{objectFit: 'cover', width: '100%', height: '100%'}} unoptimized />
+          {order.products && order.products.length > 0 ? (
+            <Image src={order.products[0].image || "/placeholder.jpg"} alt="Product" width={52} height={52} style={{objectFit: 'cover', width: '100%', height: '100%'}} unoptimized />
           ) : (
             <StatusIcon size={20} color={statusCfg.color} />
           )}
@@ -303,7 +303,7 @@ function OrderCard({ order }: { order: Order }) {
                 {order.products.map((p, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     <div style={{ width: 52, height: 64, borderRadius: 8, overflow: "hidden", background: "#f5f5f5", flexShrink: 0 }}>
-                      <Image src={p.image} alt={p.name} width={52} height={64} style={{ width: "100%", height: "100%", objectFit: "cover" }} unoptimized />
+                      <Image src={p.image || "/placeholder.jpg"} alt={p.name} width={52} height={64} style={{ width: "100%", height: "100%", objectFit: "cover" }} unoptimized />
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: "0.82rem", color: "#111" }}>{p.name}</p>
