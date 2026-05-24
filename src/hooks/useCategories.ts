@@ -10,6 +10,15 @@ export interface DBCategory {
   created_at: string;
 }
 
+const CAT_MAP: Record<string, string> = {
+  "Women": "Women",
+  "Slides & Flips": "Slides",
+  "Crocs": "Crocs",
+  "Formals & Loafers": "Formals",
+  "Men's Footwear": "Men",
+  "Sneakers": "Sneakers"
+};
+
 export function useCategories() {
   const [categories, setCategories] = useState<DBCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +31,6 @@ export function useCategories() {
 
     const fetchCategories = async () => {
       try {
-        // Fetch categories and their product counts
         const supabase = getSupabaseBrowser();
         const { data: catData } = await supabase.from("categories").select("*").order("name");
         
@@ -35,20 +43,21 @@ export function useCategories() {
         const latestImageMap: Record<string, string> = {};
         
         (prodData || []).forEach((p: any) => {
-          // Count products per category
           countMap[p.category] = (countMap[p.category] || 0) + 1;
           
-          // Because we order by created_at desc, the first time we see a category, it's the latest product
           if (!latestImageMap[p.category] && p.images && p.images.length > 0) {
             latestImageMap[p.category] = p.images[0];
           }
         });
 
-        const merged = (catData || []).map((c: any) => ({
-          ...c,
-          productCount: countMap[c.name] || 0,
-          image: latestImageMap[c.name] || c.image,
-        }));
+        const merged = (catData || []).map((c: any) => {
+          const mappedName = CAT_MAP[c.name] || c.name;
+          return {
+            ...c,
+            productCount: countMap[mappedName] || 0,
+            image: latestImageMap[mappedName] || c.image,
+          };
+        });
 
         setCategories(merged);
       } catch (err) {
@@ -63,3 +72,4 @@ export function useCategories() {
 
   return { categories, loading };
 }
+

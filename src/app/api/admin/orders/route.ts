@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(url.searchParams.get("limit") || "20");
   const search = url.searchParams.get("search") || "";
   const status = url.searchParams.get("status") || "";
-  const statuses = url.searchParams.get("statuses") || ""; // comma-separated statuses
+  const statuses = url.searchParams.get("statuses") || "";
   const paymentStatus = url.searchParams.get("paymentStatus") || "";
 
   const from = (page - 1) * limit;
@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
   if (status) {
     query = query.eq("order_status", status);
   } else if (statuses) {
-    // Filter by multiple statuses (e.g., "processing,delivered")
     query = query.in("order_status", statuses.split(",").map(s => s.trim()));
   }
   if (paymentStatus) query = query.eq("payment_status", paymentStatus);
@@ -38,6 +37,44 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Heal missing product images from products table
+  if (data && data.length > 0) {
+    const productIdsToFetch = new Set<string>();
+    for (const order of data) {
+      if (Array.isArray(order.products)) {
+        for (const p of order.products) {
+          if (!p.image && p.productId) {
+            productIdsToFetch.add(p.productId);
+          }
+        }
+      }
+    }
+
+    if (productIdsToFetch.size > 0) {
+      const { data: dbProducts } = await supabase
+        .from("products")
+        .select("id, images")
+        .in("id", Array.from(productIdsToFetch));
+
+      const imgMap = new Map<string, string>();
+      for (const dp of dbProducts || []) {
+        if (dp.images && dp.images.length > 0) {
+          imgMap.set(dp.id, dp.images[0]);
+        }
+      }
+
+      for (const order of data) {
+        if (Array.isArray(order.products)) {
+          for (const p of order.products) {
+            if (!p.image && p.productId) {
+              p.image = imgMap.get(p.productId) || null;
+            }
+          }
+        }
+      }
+    }
   }
 
   return NextResponse.json({
