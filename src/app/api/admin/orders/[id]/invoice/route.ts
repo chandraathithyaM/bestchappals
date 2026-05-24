@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServerClient } from "@/lib/supabase";
-import { jsPDF } from "jspdf";
+import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { products as localCatalog } from "@/lib/products";
 
 export async function GET(
   req: NextRequest,
@@ -113,22 +114,27 @@ export async function GET(
 
   const finalY = (doc as any).previousAutoTable?.finalY || (doc as any).lastAutoTable?.finalY || 150;
 
+  const numAmount = Number(order.amount || 0);
+  const numDiscount = Number(order.discount || 0);
+  const numShipping = Number(order.shipping || 0);
+  const subtotal = numAmount - numShipping + numDiscount;
+
   // Totals
   doc.text("Subtotal:", 140, finalY + 10);
-  doc.text(`INR ${order.amount - (order.shipping || 0) + (order.discount || 0)}`, 175, finalY + 10, { align: "right" });
+  doc.text(`INR ${subtotal.toFixed(2)}`, 175, finalY + 10, { align: "right" });
   
   doc.text("Shipping:", 140, finalY + 15);
-  doc.text(`INR ${order.shipping || 0}`, 175, finalY + 15, { align: "right" });
+  doc.text(`INR ${numShipping.toFixed(2)}`, 175, finalY + 15, { align: "right" });
 
-  if (order.discount > 0) {
+  if (numDiscount > 0) {
     doc.text("Discount:", 140, finalY + 20);
-    doc.text(`- INR ${order.discount}`, 175, finalY + 20, { align: "right" });
+    doc.text(`- INR ${numDiscount.toFixed(2)}`, 175, finalY + 20, { align: "right" });
   }
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.text("Total Amount:", 140, finalY + 28);
-  doc.text(`INR ${order.amount}`, 175, finalY + 28, { align: "right" });
+  doc.text(`INR ${numAmount.toFixed(2)}`, 175, finalY + 28, { align: "right" });
 
   // Footer
   doc.setFontSize(8);
