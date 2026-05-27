@@ -24,8 +24,6 @@ export default function Hero() {
 
   const [current, setCurrent]   = useState(0);
   const [dir, setDir]           = useState(1);
-  const [dragging, setDragging] = useState(false);
-  const dragX  = useRef(0);
   const autoRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const goTo = useCallback((idx: number, d: number) => {
@@ -56,25 +54,6 @@ export default function Hero() {
     });
     return () => ctx.revert();
   }, []);
-
-  const dragY = useRef(0);
-  const onDown = (e: React.PointerEvent) => {
-    setDragging(true);
-    dragX.current = e.clientX;
-    dragY.current = e.clientY;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-  const onUp = (e: React.PointerEvent) => {
-    if (!dragging) return;
-    setDragging(false);
-    const deltaX = e.clientX - dragX.current;
-    const deltaY = e.clientY - dragY.current;
-    // Only trigger slide change on HORIZONTAL swipes (not vertical scroll)
-    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      deltaX < 0 ? next() : prev();
-      resetAuto();
-    }
-  };
 
   const variants = {
     enter:  (d: number) => ({ x: d > 0 ? "60%" : "-60%", opacity: 0, scale: 0.88 }),
@@ -147,7 +126,7 @@ export default function Hero() {
 
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-              style={{ display: "flex", gap: "2rem", paddingTop: "1rem", borderTop: "1px solid #e5e7eb", marginTop: "0.5rem" }}
+              style={{ display: "flex", gap: "clamp(1rem, 4vw, 2rem)", flexWrap: "wrap", paddingTop: "1rem", borderTop: "1px solid #e5e7eb", marginTop: "0.5rem" }}
             >
               {[{ num: "500+", label: "Products" }, { num: "10K+", label: "Happy Customers" }, { num: "India", label: "Wide Delivery" }].map((s) => (
                 <div key={s.label}>
@@ -188,15 +167,14 @@ export default function Hero() {
               animate={{ y: [-14, 14, -14] }}
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
               style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 680, touchAction: "pan-y" }}
-              onPointerDown={onDown}
-              onPointerUp={onUp}
             >
               {/* Image area — object-contain so PNG shows fully */}
               <div style={{
                 position: "relative",
                 width: "100%",
                 aspectRatio: "1 / 1",
-                cursor: dragging ? "grabbing" : "grab",
+                cursor: "grab",
+                overflow: "hidden",
               }}>
                 <AnimatePresence mode="wait" custom={dir}>
                   <motion.div
@@ -207,7 +185,20 @@ export default function Hero() {
                     animate="center"
                     exit="exit"
                     transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-                    style={{ position: "absolute", inset: 0 }}
+                    style={{ position: "absolute", inset: 0, touchAction: "pan-y" }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.6}
+                    onDragEnd={(e, info) => {
+                      const threshold = 50;
+                      if (info.offset.x < -threshold) {
+                        next();
+                        resetAuto();
+                      } else if (info.offset.x > threshold) {
+                        prev();
+                        resetAuto();
+                      }
+                    }}
                   >
                     {/* 
                       CRITICAL: objectFit "contain" so transparent PNG
@@ -248,6 +239,7 @@ export default function Hero() {
             <motion.div
               initial={{ scale: 0 }} animate={{ scale: 1 }}
               transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
+              className="hero-badge-new"
               style={{
                 position: "absolute", top: "8%", right: "2%",
                 width: 76, height: 76, borderRadius: "50%",
@@ -266,6 +258,7 @@ export default function Hero() {
             <motion.div
               initial={{ scale: 0, x: 20 }} animate={{ scale: 1, x: 0 }}
               transition={{ delay: 1.6, type: "spring", stiffness: 160 }}
+              className="hero-badge-trending"
               style={{
                 position: "absolute", top: "22%", right: "-1%",
                 padding: "5px 13px", borderRadius: 100, zIndex: 4,
@@ -282,6 +275,7 @@ export default function Hero() {
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.8 }}
+              className="hero-price-tag"
               style={{
                 position: "absolute", bottom: "14%", left: "4%",
                 padding: "7px 16px",
@@ -300,6 +294,7 @@ export default function Hero() {
             {(["prev", "next"] as const).map((btn) => (
               <button
                 key={btn}
+                className="hero-arrow"
                 onClick={() => { btn === "prev" ? prev() : next(); resetAuto(); }}
                 aria-label={btn === "prev" ? "Previous" : "Next"}
                 style={{
@@ -336,7 +331,30 @@ export default function Hero() {
 
       <style>{`
         @media (max-width: 768px) {
-          .hero-grid { grid-template-columns: 1fr !important; gap: 2rem !important; padding: 2rem 0 !important; }
+          .hero-grid { 
+            grid-template-columns: 1fr !important; 
+            gap: 2.5rem !important; 
+            padding: 1.5rem 0 3rem !important; 
+            min-height: auto !important;
+          }
+          .hero-arrow {
+            display: none !important;
+          }
+          .hero-badge-new {
+            top: 0% !important;
+            right: 0% !important;
+            transform: scale(0.85) !important;
+          }
+          .hero-badge-trending {
+            top: 12% !important;
+            right: -2% !important;
+            transform: scale(0.85) !important;
+          }
+          .hero-price-tag {
+            bottom: 6% !important;
+            left: 2% !important;
+            transform: scale(0.85) !important;
+          }
         }
       `}</style>
     </section>
