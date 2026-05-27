@@ -93,10 +93,12 @@ async function downloadOrderInvoice(order: Order) {
 
   // Table Data
   const tableData = [];
+  const rowImages: (string | null)[] = [];
   for (const p of order.products) {
     const imgData = await loadImage(p.image || "/placeholder.jpg");
+    rowImages.push(imgData);
     tableData.push([
-      imgData,
+      "", // Empty string so autoTable does not render base64 text inside the cell
       `${p.name}\nSize: ${p.size}\nCategory: ${p.category}`,
       p.quantity.toString(),
       `Rs. ${p.price.toLocaleString("en-IN")}`,
@@ -110,10 +112,9 @@ async function downloadOrderInvoice(order: Order) {
     body: tableData,
     didDrawCell: (data) => {
       if (data.column.index === 0 && data.cell.section === 'body') {
-        const rowData = tableData[data.row.index];
-        const imgData = rowData ? rowData[0] : null;
+        const imgData = rowImages[data.row.index];
         if (imgData) {
-          doc.addImage(imgData as string, "JPEG", data.cell.x + 2, data.cell.y + 2, 12, 12);
+          doc.addImage(imgData, "JPEG", data.cell.x + 2, data.cell.y + 2, 12, 12);
         }
       }
     },
