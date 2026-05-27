@@ -65,6 +65,41 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // ─── DYNAMIC STATISTICS ───────────────────────────────────────────────────
+  // Calculate real-time order count and total spent from orders table
+  if (data && data.length > 0) {
+    const userIds = data.map((u) => u.id).filter(Boolean);
+    if (userIds.length > 0) {
+      const { data: orderSums, error: sumError } = await supabase
+        .from("orders")
+        .select("user_id, amount, created_at")
+        .in("user_id", userIds)
+        .eq("payment_status", "paid");
+
+      if (!sumError && orderSums) {
+        const userStats = new Map<string, { count: number; spent: number; lastOrder: string | null }>();
+        for (const order of orderSums) {
+          if (order.user_id) {
+            const stats = userStats.get(order.user_id) || { count: 0, spent: 0, lastOrder: null };
+            stats.count += 1;
+            stats.spent += Number(order.amount || 0);
+            if (!stats.lastOrder || new Date(order.created_at) > new Date(stats.lastOrder)) {
+              stats.lastOrder = order.created_at;
+            }
+            userStats.set(order.user_id, stats);
+          }
+        }
+
+        for (const user of data) {
+          const stats = userStats.get(user.id) || { count: 0, spent: 0, lastOrder: null };
+          user.total_orders = stats.count;
+          user.total_spent = stats.spent;
+          user.last_order_at = stats.lastOrder;
+        }
+      }
+    }
+  }
+
   return NextResponse.json({
     users: data || [],
     total: count || 0,
